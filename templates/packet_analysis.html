@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Packet Length Analysis - Network Traffic Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+    .nav-buttons {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>📏 Average Packet Length by Attack Type</h2>
+        <p class="text-muted">Analysis of average packet length across different attack types</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Attack Analysis</a>
+    </div>
+</div>
+
+<!-- Chart Display -->
+{% if packet_data %}
+    <div class="chart-container">
+        <canvas id="packetChart"></canvas>
+    </div>
+
+    <!-- Data Table -->
+    <div class="mt-4">
+        <h5>📊 Data Summary</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Attack Type</th>
+                        <th class="text-end">Avg Packet Length (bytes)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in packet_data %}
+                        <tr>
+                            <td>{{ row['Attack Type'] }}</td>
+                            <td class="text-end"><strong>{{ "%.2f"|format(row['avg_packet_length']) }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-muted small">
+            <p>Total attack types: <strong>{{ packet_data|length }}</strong></p>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-warning">
+        No packet data available. Please check your database.
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    {% if packet_data %}
+    const ctx = document.getElementById('packetChart').getContext('2d');
+    const labels = [{% for row in packet_data %}'{{ row["Attack Type"] }}'{{ "," if not loop.last }}{% endfor %}];
+    const data = [{% for row in packet_data %}{{ row['avg_packet_length'] }}{{ "," if not loop.last }}{% endfor %}];
+    
+    // 각 공격 유형별 다른 색상 지정
+    const colors = [
+        '#5975a4', '#cc5de8', '#845b97', '#d45087',
+        '#ff6e40', '#ffa726', '#ffb74d', '#ffb366',
+        '#66bb6a', '#26a69a', '#29b6f6', '#42a5f5',
+        '#ec407a', '#ab47bc', '#7e57c2', '#5c6bc0'
+    ];
+    
+    const backgroundColors = data.map((_, index) => colors[index % colors.length]);
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average Packet Length (bytes)',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: '#333',
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        boxWidth: 15,
+                        font: { size: 12 }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Average Packet Length Distribution'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Average Packet Length (bytes)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Attack Type'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

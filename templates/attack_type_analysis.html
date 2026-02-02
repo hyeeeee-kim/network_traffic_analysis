@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Attack Type Analysis - Network Traffic Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+    .filter-form {
+        background: #f0f0f0;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2>🔍 Attack Type Analysis</h2>
+        <p class="text-muted">Network traffic analysis by attack type within selected date range</p>
+    </div>
+</div>
+
+<!-- Date Range Filter Form -->
+<div class="filter-form">
+    <form method="GET" class="row g-3">
+        <div class="col-md-4">
+            <label for="start_date" class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}" required>
+        </div>
+        <div class="col-md-4">
+            <label for="end_date" class="form-label">End Date</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}" required>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">🔎 Search</button>
+        </div>
+    </form>
+</div>
+
+<!-- Chart Display -->
+{% if traffic_data %}
+    <div class="chart-container">
+        <canvas id="attackChart"></canvas>
+    </div>
+
+    <!-- Data Table -->
+    <div class="mt-4">
+        <h5>📊 Data Summary</h5>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Attack Type</th>
+                        <th class="text-end">Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in traffic_data %}
+                        <tr>
+                            <td>{{ row['Attack Type'] }}</td>
+                            <td class="text-end"><strong>{{ row['count'] }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-muted small">
+            <p>Total attack types: <strong>{{ traffic_data|length }}</strong> | Period: {{ start_date }} to {{ end_date }}</p>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-warning">
+        No traffic data available for the selected date range. Please adjust your filters.
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    {% if traffic_data %}
+    const ctx = document.getElementById('attackChart').getContext('2d');
+    const labels = [{% for row in traffic_data %}'{{ row["Attack Type"] }}'{{ "," if not loop.last }}{% endfor %}];
+    const data = [{% for row in traffic_data %}{{ row['count'] }}{{ "," if not loop.last }}{% endfor %}];
+    
+    const colors = [
+        '#5975a4', '#cc5de8', '#845b97', '#d45087',
+        '#ff6e40', '#ffa726', '#ffb74d', '#ffb366',
+        '#66bb6a', '#26a69a', '#29b6f6', '#42a5f5',
+        '#ec407a', '#ab47bc', '#7e57c2', '#5c6bc0'
+    ];
+    
+    const backgroundColors = data.map((_, index) => colors[index % colors.length]);
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Attack Count',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: '#333',
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: {
+                        boxWidth: 15,
+                        font: { size: 12 }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Attack Type Distribution'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Count'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Attack Type'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
